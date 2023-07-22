@@ -10,7 +10,7 @@ mixer.music.load('Neon.mp3')
 mixer.music.play(-1)
 
 screen=pygame.display.set_mode((800,600))
-pygame.display.set_caption('Space Shooter Game by 2008039')
+pygame.display.set_caption('Cosmic Conquest by 2008039')
 icon=pygame.image.load('icon.png')
 pygame.display.set_icon(icon)
 background=pygame.image.load('bg.png')
