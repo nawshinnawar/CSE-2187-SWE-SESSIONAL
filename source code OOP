@@ -1,0 +1,167 @@
+
+import pygame
+import random
+import math
+from pygame import mixer
+
+# Initialize pygame and mixer
+mixer.init()
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 1000, 800
+SPACESHIP_SPEED = 5
+BULLET_SPEED = 5
+ALIEN_SPEED_X = 1
+ALIEN_SPEED_Y = 40
+ALIEN_COUNT = 6
+
+# Colors
+WHITE = (255, 255, 255)
+
+# Create a screen and set the window caption
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('Cosmic Conquest by 2008039')
+icon = pygame.image.load('icon.png')
+pygame.display.set_icon(icon)
+
+# Load game assets
+background = pygame.image.load('bg.png')
+spaceship_img = pygame.image.load('plane.png')
+alien_img = pygame.image.load('enemy2.png')
+bullet_img = pygame.image.load('bullets.png')
+
+# Load game sounds
+mixer.music.load('neon.mp3')
+bullet_sound = mixer.Sound('laser.wav')
+explosion_sound = mixer.Sound('explosion.wav')
+
+# Fonts
+font = pygame.font.SysFont('Arial', 32, bold=True)
+game_over_font = pygame.font.SysFont('Arial', 64, bold=True)
+
+class Spaceship:
+    def __init__(self):
+        self.image = spaceship_img
+        self.rect = self.image.get_rect()
+        self.rect.x = 370
+        self.rect.y = 480
+        self.change_x = 0
+
+    def move(self, direction):
+        if direction == "left":
+            self.change_x = -SPACESHIP_SPEED
+        elif direction == "right":
+            self.change_x = SPACESHIP_SPEED
+
+    def stop(self):
+        self.change_x = 0
+
+    def update(self):
+        self.rect.x += self.change_x
+        if self.rect.x <= 0:
+            self.rect.x = 0
+        elif self.rect.x >= WIDTH - self.rect.width:
+            self.rect.x = WIDTH - self.rect.width
+
+class Alien:
+    def __init__(self):
+        self.image = alien_img
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, 736)
+        self.rect.y = random.randint(30, 150)
+        self.speed_x = ALIEN_SPEED_X
+        self.speed_y = ALIEN_SPEED_Y
+
+    def update(self):
+        self.rect.x += self.speed_x
+        if self.rect.x <= 0 or self.rect.x >= WIDTH - self.rect.width:
+            self.speed_x *= -1
+            self.rect.y += self.speed_y
+
+class Bullet:
+    def __init__(self, spaceship_x):
+        self.image = bullet_img
+        self.rect = self.image.get_rect()
+        self.rect.x = spaceship_x + 16
+        self.rect.y = 490
+        self.active = False
+
+    def shoot(self):
+        bullet_sound.play()
+        self.active = True
+
+    def update(self):
+        if self.active:
+            self.rect.y -= BULLET_SPEED
+            if self.rect.y <= 0:
+                self.active = False
+
+class Game:
+    def __init__(self):
+        self.spaceship = Spaceship()
+        self.aliens = [Alien() for _ in range(ALIEN_COUNT)]
+        self.bullet = Bullet(self.spaceship.rect.x)
+        self.score = 0
+        self.game_over = False
+
+    def handle_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.game_over = True
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    self.spaceship.move("left")
+                elif event.key == pygame.K_RIGHT:
+                    self.spaceship.move("right")
+                elif event.key == pygame.K_SPACE:
+                    if not self.bullet.active:
+                        self.bullet.shoot()
+
+            if event.type == pygame.KEYUP:
+                self.spaceship.stop()
+
+    def check_collisions(self):
+        for alien in self.aliens:
+            if self.bullet.active and self.bullet.rect.colliderect(alien.rect):
+                explosion_sound.play()
+                self.bullet.active = False
+                self.bullet.rect.y = 490
+                alien.rect.x = random.randint(0, 736)
+                alien.rect.y = random.randint(30, 150)
+                self.score += 1
+
+        if any(alien.rect.colliderect(self.spaceship.rect) for alien in self.aliens):
+            self.game_over = True
+
+    def draw(self):
+        screen.blit(background, (0, 0))
+        if not self.game_over:
+            screen.blit(self.spaceship.image, self.spaceship.rect)
+            for alien in self.aliens:
+                screen.blit(alien.image, alien.rect)
+            if self.bullet.active:
+                screen.blit(self.bullet.image, self.bullet.rect)
+            score_text = font.render(f'Score: {self.score}', True, WHITE)
+            screen.blit(score_text, (10, 10))
+        else:
+            game_over_text = game_over_font.render('GAME OVER', True, WHITE)
+            screen.blit(game_over_text, (200, 250))
+
+        pygame.display.update()
+
+def main():
+    game = Game()
+
+    mixer.music.play(-1)
+
+    while not game.game_over:
+        game.handle_events()
+        game.check_collisions()
+        game.draw()
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
